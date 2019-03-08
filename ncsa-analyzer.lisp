@@ -2,7 +2,8 @@
 
 (in-package #:ncsa-analyzer)
 
-(defparameter *test-log-line* "180.76.15.5 - - [23/Jan/2017:00:00:00 +0000] \"GET /cda/fragment/relatedcontent/10406/19112659?keywords=Fukushima%2CJapan%2Ccore+meltdown%2Ctsunami%2Cresettlement%2Cdecontamination&title=Fukushima+five+years+on& HTTP/1.1\" 200 950")
+(defparameter *test-log-line*
+  "180.76.15.5 - - [23/Jan/2017:01:23:45 +0100] \"GET /cda/fragment/relatedcontent/10406/19112659?keywords=Fukushima%2CJapan%2Ccore+meltdown%2Ctsunami%2Cresettlement%2Cdecontamination&title=Fukushima+five+years+on& HTTP/1.1\" 200 950")
 
 (defmacro ! (function &rest arguments)
   `(funcall ,function ,@arguments))
@@ -38,6 +39,15 @@ Sunday is 0. Works for years after 1752."
 	 "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")
        :test #'string=)))
 
+(defun rational-time-zone (tz)
+  (let ((sign (ecase (aref tz 0)
+                (#\- -1)
+                (#\+ 1))))
+    (* sign
+       (+ (parse-integer tz :start 1 :end 3)
+          (/ (parse-integer tz :start 3 :end 5) 60)))))
+
+
 (defun numberify (day month year hour min sec time-zone)
   "takes time stamp components as strings and returns
 integer values"
@@ -54,9 +64,10 @@ integer values"
      iday
      imonth
      iyear
-;     (day-of-week iday imonth iyear)
-;     daylight-savings-time
-     (parse-integer time-zone))))
+;;;     (day-of-week iday imonth iyear)
+;;;     daylight-savings-time
+     (rational-time-zone time-zone)
+     )))
 
 (defun decoded-time-from-ncsa-date (str)
   ;;; "23/Jan/2017:00:00:00 +0000"
