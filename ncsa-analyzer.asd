@@ -1,8 +1,8 @@
 ;;;; ncsa-analyzer.asd
 
 (asdf:defsystem #:ncsa-analyzer
-  :description "Query-System for Logfile Analyzation"
-  :author "Your Name <patrick.krusenotto@gmail.com>"
+  :description "query system for analyzation of ncsa logfiles"
+  :author "Patrick M. Krusenotto<patrick.krusenotto@gmail.com>"
   :license  "Specify license here"
   :version "0.0.1"
   :serial t
