@@ -46,7 +46,6 @@ integer values"
 	(iyear  (parse-integer year))
         ;; (daylight-savings-time nil)
 	)
-       
     (values
      (parse-integer sec)
      (parse-integer min)
@@ -92,5 +91,3 @@ and calculates a unix time stamp"
      (parse-integer size)
      )))
 
-(defmacro delay (expr)
-  `(lambda () ,expr))

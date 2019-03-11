@@ -6,6 +6,8 @@
   :license  "Specify license here"
   :version "0.0.1"
   :serial t
-  :depends-on (#:alexandria #:cl-ppcre)
+  :depends-on (#:alexandria
+	       #:cl-ppcre
+	       #:lazy-memo)
   :components ((:file "package")
                (:file "ncsa-analyzer")))
