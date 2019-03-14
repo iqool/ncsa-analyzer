@@ -2,7 +2,8 @@
 
 (in-package #:ncsa-analyzer)
 
-(defparameter *test-log-line* "180.76.15.5 - - [23/Jan/2017:00:00:00 +0000] \"GET /cda/fragment/relatedcontent/10406/19112659?keywords=Fukushima%2CJapan%2Ccore+meltdown%2Ctsunami%2Cresettlement%2Cdecontamination&title=Fukushima+five+years+on& HTTP/1.1\" 200 950")
+(defparameter *test-log-line*
+  "180.76.15.5 - - [23/Jan/2017:01:23:45 +0100] \"GET /cda/fragment/relatedcontent/10406/19112659?keywords=Fukushima%2CJapan%2Ccore+meltdown%2Ctsunami%2Cresettlement%2Cdecontamination&title=Fukushima+five+years+on& HTTP/1.1\" 200 950")
 
 (defmacro ! (function &rest arguments)
   `(funcall ,function ,@arguments))
