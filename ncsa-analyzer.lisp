@@ -94,11 +94,6 @@ integer values"
        user-agent-raw
        ))))
 
-(print (multiple-value-bind (a b)
-	   (parse-ncsa-line *test-log-line*)
-	 (print (ask a))
-	 (print (ask b))))
-
 (defun file (name)
   (let (;(eof (gensym))
 	(s (open name)))
