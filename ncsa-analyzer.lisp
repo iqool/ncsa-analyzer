@@ -32,7 +32,7 @@ Sunday is 0. Works for years after 1752."
      7)))
 
 (defun month-number (month)
-  "computes the month index from an month string"
+  "computes the month index from a month tag"
   (1+ (position
        month
        '("Jan" "Feb" "Mar" "Apr" "May" "Jun"
@@ -40,13 +40,9 @@ Sunday is 0. Works for years after 1752."
        :test #'string=)))
 
 (defun rational-time-zone (tz)
-  (let ((sign (ecase (aref tz 0)
-                (#\- -1)
-                (#\+ 1))))
-    (* sign
-       (+ (parse-integer tz :start 1 :end 3)
-          (/ (parse-integer tz :start 3 :end 5) 60)))))
-
+  (* (ecase (aref tz 0) (#\- +1) (#\+ -1))
+     (+ (parse-integer tz :start 1 :end 3)
+        (/ (parse-integer tz :start 3 :end 5) 60))))
 
 (defun numberify (day month year hour min sec time-zone)
   "takes time stamp components as strings and returns
@@ -56,7 +52,6 @@ integer values"
 	(iyear  (parse-integer year))
         ;; (daylight-savings-time nil)
 	)
-       
     (values
      (parse-integer sec)
      (parse-integer min)
@@ -66,42 +61,45 @@ integer values"
      iyear
 ;;;     (day-of-week iday imonth iyear)
 ;;;     daylight-savings-time
-     (rational-time-zone time-zone)
-     )))
+     (rational-time-zone time-zone))))
 
-(defun decoded-time-from-ncsa-date (str)
+(defun decoded-time-from-ncsa-date-and-time-zone (time-stamp time-zone)
   ;;; "23/Jan/2017:00:00:00 +0000"
-  (cl-ppcre:register-groups-bind (day month year hour min sec time-zone)
-      ("(\\d+)/([A-Z][a-z]{2})/(\\d{4}):(\\d{2}):(\\d{2}):(\\d{2})\\s(.+)" str)
+  (cl-ppcre:register-groups-bind (day month year hour min sec)
+      ("(\\d+)/([A-Z][a-z]{2})/(\\d{4}):(\\d{2}):(\\d{2}):(\\d{2})" time-stamp)
     (numberify day month year hour min sec time-zone)))
 
-(defun epoch-from-ncsa-date (date)
-  "takes an nsca-style date with timezone without enclosing brackets
-and calculates a unix time stamp"
+(defun epoch-from-ncsa-date (date time-zone)
+  "takes an nsca-style date and timezone and returns a unix time stamp"
   (multiple-value-call
       #'encode-universal-time
-    (decoded-time-from-ncsa-date date)))
+    (decoded-time-from-ncsa-date-and-time-zone date time-zone)))
+
+(defmacro delay (expr)
+  `(lambda () ,expr))
 
 (defun parse-ncsa-line (l)
   (destructuring-bind (ip ident user time zone method url protocol status size)
       (cl-ppcre:split "\\s+" l)
     (values
      (delay (mapcar #'parse-integer
-	     (cl-ppcre:all-matches-as-strings "\\d+" ip)))
+                    (cl-ppcre:all-matches-as-strings "\\d+" ip)))
      ident
      user
-     (let ((ts (concatenate 'string time " " zone)))
-       (when (< (length ts) 2)
-	 (setq ts "[]"))
-       (when (< (length protocol) 2)
-	 (setq protocol ""))
-       (subseq ts 1 (1- (length ts))))
+     (subseq time 1)
+     (subseq zone 0 5)
      (subseq method 1)
      url
      (subseq protocol 0 (1- (length protocol)))
      (parse-integer status)
-     (parse-integer size)
-     )))
+     (parse-integer size))))
 
-(defmacro delay (expr)
-  `(lambda () ,expr))
+(defun lazy (closure)
+  (let ((calculated-p)
+        (result))
+    (lambda ()
+      (if calculated-p 
+          result
+          (prog1
+              (setq result (funcall closure))
+            (setq calculated-p t))))))
