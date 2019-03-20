@@ -40,18 +40,16 @@ Sunday is 0. Works for years after 1752."
        :test #'string=)))
 
 (defun rational-time-zone (tz)
-  (* (ecase (aref tz 0) (#\- +1) (#\+ -1))
+  (* (ecase (aref tz 0) (#\- -1) (#\+ +1))
      (+ (parse-integer tz :start 1 :end 3)
         (/ (parse-integer tz :start 3 :end 5) 60))))
 
-(defun numberify (day month year hour min sec time-zone)
+(defun numberify-time-date (day month year hour min sec time-zone)
   "takes time stamp components as strings and returns
 integer values"
   (let ((iday   (parse-integer day))
 	(imonth (month-number  month))
-	(iyear  (parse-integer year))
-        ;; (daylight-savings-time nil)
-	)
+	(iyear  (parse-integer year)))
     (values
      (parse-integer sec)
      (parse-integer min)
@@ -59,15 +57,13 @@ integer values"
      iday
      imonth
      iyear
-;;;     (day-of-week iday imonth iyear)
-;;;     daylight-savings-time
-     (rational-time-zone time-zone))))
+     (- (rational-time-zone time-zone)))))
 
 (defun decoded-time-from-ncsa-date-and-time-zone (time-stamp time-zone)
   ;;; "23/Jan/2017:00:00:00 +0000"
   (cl-ppcre:register-groups-bind (day month year hour min sec)
       ("(\\d+)/([A-Z][a-z]{2})/(\\d{4}):(\\d{2}):(\\d{2}):(\\d{2})" time-stamp)
-    (numberify day month year hour min sec time-zone)))
+    (numberify-time-date day month year hour min sec time-zone)))
 
 (defun epoch-from-ncsa-date (date time-zone)
   "takes an nsca-style date and timezone and returns a unix time stamp"
@@ -75,31 +71,32 @@ integer values"
       #'encode-universal-time
     (decoded-time-from-ncsa-date-and-time-zone date time-zone)))
 
-(defmacro delay (expr)
-  `(lambda () ,expr))
-
-(defun parse-ncsa-line (l)
-  (destructuring-bind (ip ident user time zone method url protocol status size)
+(defun parse-ncsa-combined-line (l)
+  (destructuring-bind (ip-raw ident user time-raw zone-raw method url protocol status size referer &rest user-agent-raw)
       (cl-ppcre:split "\\s+" l)
-    (values
-     (delay (mapcar #'parse-integer
-                    (cl-ppcre:all-matches-as-strings "\\d+" ip)))
-     ident
-     user
-     (subseq time 1)
-     (subseq zone 0 5)
-     (subseq method 1)
-     url
-     (subseq protocol 0 (1- (length protocol)))
-     (parse-integer status)
-     (parse-integer size))))
+    (let ((time (subseq time-raw 1))
+	  (zone (subseq zone-raw 0 5)))
+      (vector
+       (promise (mapcar #'parse-integer (cl-ppcre:split "\\." ip-raw)))
+       ip-raw
+       ident
+       user
+       (promise (epoch-from-ncsa-date time zone))
+       time
+       zone
+       (subseq method 1)
+       url
+       protocol
+       status
+       size
+       referer
+       (promise (apply #'concatenate 'string user-agent-raw))
+       user-agent-raw
+       ))))
 
-(defun lazy (closure)
-  (let ((calculated-p)
-        (result))
+(defun file (name)
+  (let (;(eof (gensym))
+	(s (open name)))
     (lambda ()
-      (if calculated-p 
-          result
-          (prog1
-              (setq result (funcall closure))
-            (setq calculated-p t))))))
+      (read-line s nil nil))))
+

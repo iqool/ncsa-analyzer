@@ -1,4 +1,4 @@
 ;;;; package.lisp
 
 (defpackage #:ncsa-analyzer
-  (:use #:cl))
+  (:use #:cl #:lazy-memo))
