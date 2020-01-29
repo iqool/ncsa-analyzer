@@ -5,6 +5,8 @@
 (defparameter *test-log-line*
   "180.76.15.5 - - [23/Jan/2017:01:23:45 +0100] \"GET /cda/fragment/relatedcontent/10406/19112659?keywords=Fukushima%2CJapan%2Ccore+meltdown%2Ctsunami%2Cresettlement%2Cdecontamination&title=Fukushima+five+years+on& HTTP/1.1\" 200 950")
 
+(defparameter *t2* "66.249.72.225 - - [28/Sep/2007:15:51:37 +0200] \"GET / HTTP/1.1\" 304 - \"-\" \"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)\"")
+
 (defmacro ! (function &rest arguments)
   `(funcall ,function ,@arguments))
 
@@ -71,7 +73,7 @@ integer values"
       #'encode-universal-time
     (decoded-time-from-ncsa-date-and-time-zone date time-zone)))
 
-(defun parse-ncsa-combined-line (l)
+(defun parse-ncsa-combined-line-with-promises (l)
   (destructuring-bind (ip-raw ident user time-raw zone-raw method url protocol status size referer &rest user-agent-raw)
       (cl-ppcre:split "\\s+" l)
     (let ((time (subseq time-raw 1))
@@ -93,6 +95,53 @@ integer values"
        (promise (apply #'concatenate 'string user-agent-raw))
        user-agent-raw
        ))))
+
+(defun parse-ncsa-combined-line (l)
+  (destructuring-bind (ip-raw ident user time-raw zone-raw method url protocol status size referer &rest user-agent-raw)
+      (cl-ppcre:split "\\s+" l)
+    (let ((time (subseq time-raw 1))
+	  (zone (subseq zone-raw 0 5)))
+      (vector
+       (mapcar #'parse-integer (cl-ppcre:split "\\." ip-raw))
+       ip-raw
+       ident
+       user
+       (epoch-from-ncsa-date time zone)
+       time
+       zone
+       (subseq method 1)
+       url
+       protocol
+       status
+       size
+       referer
+       (apply #'concatenate 'string user-agent-raw)
+       user-agent-raw
+       ))))
+
+(defun parse-ncsa-combined-line-to-plist (l)
+  (destructuring-bind (ip-raw ident user time-raw zone-raw method url protocol status size referer &rest user-agent-raw)
+      (cl-ppcre:split "\\s+" l)
+    (let ((time (subseq time-raw 1))
+	  (zone (subseq zone-raw 0 5)))
+      (list
+       :ip (mapcar #'parse-integer (cl-ppcre:split "\\." ip-raw))
+       :ip-raw ip-raw
+       :ident ident
+       :user user
+       :epoch (epoch-from-ncsa-date time zone)
+       :timestamp time
+       :zone zone
+       :method (subseq method 1)
+       :url url
+       :protocol protocol
+       :status status
+       :size size
+       :referer referer
+       :user-agent (apply #'concatenate 'string user-agent-raw)
+       :user-agent-raw user-agent-raw
+       ))))
+
 
 (defun file (name)
   (let (;(eof (gensym))
