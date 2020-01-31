@@ -142,10 +142,26 @@ integer values"
        :user-agent-raw user-agent-raw
        ))))
 
-
-(defun file (name)
+(defun textfile (name)
   (let (;(eof (gensym))
 	(s (open name)))
     (lambda ()
       (read-line s nil nil))))
 
+(defun dump (src)
+  (let ((textline (funcall src)))
+    (when textline
+      (print textline)
+      (dump src))))
+
+(defun file (name)
+  (let ((src (textfile name)))
+    (labels ((file-iterator ()
+	       (let ((textline (funcall src)))
+		 (print textline)
+		 (if textline
+		     (parse-ncsa-combined-line-to-plist textline)))))
+      #'file-iterator)))
+
+  
+(defun test() (dump (file "access.small.log")))
